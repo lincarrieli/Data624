@@ -1,0 +1,314 @@
+---
+title: "Data624"
+output: html_document
+---
+Week 1
+
+HA 2.1, 2.2, 6.2
+
+```{r}
+library(ggplot2)
+library(forecast)
+library(fpp2)
+```
+
+
+HA 2.1
+Use the help function to explore what the series gold, woolyrnq and gas represent.
+
+```{r}
+# Use help function to explore the three datasets
+??gold
+??woolyrnq
+??gas
+```
+
+"gold" is a time series object that contains daily morning gold prices in US dollars from January 1 of 1985 through March 31 of 1989. 
+
+"woolyrng" is a time series object ofquartely production of woollen yarn in Australia in tonnes from March of 1965 to September of 1994.
+
+"gas" is a time series object of Australian monthly gas production between 1956 and 1995.
+
+
+Use autoplot() to plot each of these in separate plots.
+What is the frequency of each series? Hint: apply the frequency() function.
+Use which.max() to spot the outlier in the gold series. Which observation was it?
+
+
+```{r}
+# Generate autoplot for "gold"
+autoplot(gold) + 
+  ggtitle("Gold Prices") +
+  xlab("Time") +
+  ylab("Price in US dollars")
+```
+
+
+```{r}
+# Generate autoplot for "woolyrnq"
+autoplot(woolyrnq) +
+  ggtitle("Production of wollen yarn in Australia") +
+  xlab("Year") +
+  ylab("Tonne")
+```
+
+```{r}
+# Generate autoplot for "gas"
+autoplot(gas) +
+  ggtitle("Australian monthly gas production") +
+  xlab("Year") +
+  ylab("ton")
+```
+```{r}
+# Get frequency for each series
+frequency(gold)
+frequency(woolyrnq)
+frequency(gas)
+```
+The frequency is annual, quarterly, and monthly for gold, woolyrnq and gas, respectively.
+
+```{r}
+# Use which.max() to spot the outlier in the gold series. Which observation was it?
+which.max(gold)
+```
+The outlier is at trading day 770. we can also see a peak in the plot at around day 770.
+
+
+HA 2.2
+Download the file tute1.csv from the book website, open it in Excel (or some other spreadsheet application), and review its contents. You should find four columns of information. Columns B through D each contain a quarterly series, labelled Sales, AdBudget and GDP. Sales contains the quarterly sales for a small company over the period 1981-2005. AdBudget is the advertising budget and GDP is the gross domestic product. All series have been adjusted for inflation.
+
+a. You can read the data into R with the following script:
+```{r}
+# Get tute1 file
+tute1 <- read.csv("https://raw.githubusercontent.com/nealxun/Forecasting_Principle_and_Practices/master/extrafiles/tute1.csv")
+View(tute1)
+```
+
+b. Convert the data to time series
+```{r}
+mytimeseries <- ts(tute1[,-1], start=1981, frequency=4)
+```
+
+c. Construct time series plots of each of the three series
+```{r}
+autoplot(mytimeseries, facets=TRUE)
+```
+Check what happens when you don’t include facets=TRUE.
+```{r}
+# Plot without facets = TRUE
+autoplot(mytimeseries)
+```
+The facets=True commend spits the plot into individual time series plots. Without using the function, the data get plotted as a single plot on a single axes.
+
+
+6.2 The plastics data set consists of the monthly sales (in thousands) of product A for a plastics manufacturer for five years.
+
+a. Plot the time series of sales of product A. Can you identify seasonal fluctuations and/or a trend-cycle?
+
+```{r}
+# Load package that contains the 'plastics' dataset
+library(fma)
+
+# Time series of sales of product A
+autoplot(plastics) +
+  ggtitle("Annual sales of product A") +
+  xlab("Year") +
+  ylab("Sales Quantity")
+
+# Creat seasonal plot
+ggseasonplot(plastics) + 
+  ggtitle("Seasonal plot for annual sales of product A") +
+  xlab("Month") +
+  ylab("Sales Quantity")
+```
+The above autoplot shows obvious seasonal fluctuations and slight increasing trend from year 1 to year 5. The seasonal plot shows a strong fluctuation with the sales peaking in in summer month from June to September.
+
+b.Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
+```{r}
+# Plot classical multiplicative decomposition
+plastics %>% decompose(type="multiplicative") %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Classical multiplicative decomposition of plastics sales index")
+
+# Calculate indices
+ma(plastics, order = 12, centre = TRUE)
+```
+```{r}
+autoplot(plastics, series="Data") +
+  autolayer(ma(plastics, 12), series="12-MA") +
+  xlab("Year") + ylab("Sales Quantity") +
+  ggtitle("Annual sales of product A") +
+  scale_colour_manual(values=c("Data"="grey","12-MA"="red"),
+                      breaks=c("Data","12-MA"))
+```
+
+c. Do the results support the graphical interpretation from part a?
+The results support the graphical interpretation from part a. The trend cycle plot shows a visible upward trend.
+
+d. Compute and plot the seasonally adjusted data.
+For an additive decomposition, the seasonally adjusted data are given by yt - St, and for multiplicative data, the seasonally adjusted values are obtained using yt / St.
+
+
+```{r}
+# the seasonally adjusted series can be computed using the seasade() function.
+seasadj(decompose(plastics,"multiplicative"))
+
+# Plot the seasonally adjusted data
+autoplot(plastics) +
+  autolayer(plastics, series = "Data") +
+  autolayer(seasadj(decompose(plastics,"multiplicative")), series = "Adjusted") +
+  ggtitle("Seasonal Adjusted Plastics") +
+  xlab("Month") +
+  ylab("Sales Quantity")
+#lines(seasadj(decompose(plastics,"multiplicative")))
+```
+
+
+e. Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
+
+```{r}
+
+```
+
+f. Does it make any difference if the outlier is near the end rather than in the middle of the time series?
+
+ HW2
+
+KJ
+3.1. The UC Irvine Machine Learning Repository6 contains a data set related to glass identification. The data consist of 214 glass samples labeled as one of seven class categories. There are nine predictors, including the refractive index and percentages of eight elements: Na, Mg, Al, Si, K, Ca, Ba, and Fe.
+The data can be accessed via:
+```{r}
+library(mlbench)
+library(reshape)
+data(Glass)
+
+# Transform data from wide to long
+melt.Glass <- melt(Glass)
+```
+
+(a) Using visualizations, explore the predictor variables to understand their distributions as well as the relationships between predictors.
+
+```{r}
+# Observe distributions of predictors using stat_density
+ggplot(data = melt.Glass, aes(x = value)) + stat_density() + facet_wrap(~variable, scales = "free")
+```
+
+(b) Do there appear to be any outliers in the data? Are any predictors skewed?
+There seem to be outliers from the pairs() output. K, Ca, value, and Fe are highly left-skewed.
+
+(c) Are there any relevant transformations of one or more predictors that
+might improve the classification model?
+Box-cox transformation may improve the skewness in the data.
+
+
+3.2. The soybean data can also be found at the UC Irvine Machine Learning Repository. Data were collected to predict disease in 683 soybeans. The 35 predictors are mostly categorical and include information on the environmental conditions (e.g., temperature, precipitation) and plant conditions (e.g., left spots, mold growth). The outcome labels consist of 19 distinct classes.
+
+```{r}
+library(mlbench)
+data(Soybean)
+head(Soybean)
+
+# Transform data from wide to long
+melt.soybeans <- melt(data = Soybean,
+                id.vars = "Class",
+                variable.name = "variable",
+                value.name = "value")
+head(melt.soybeans)
+```
+
+
+(a) Investigate the frequency distributions for the categorical predictors. Are any of the distributions degenerate in the ways discussed earlier in this chapter?
+
+```{r}
+# Visualize distributions of categorical predictors
+ggplot(data = melt.soybeans, aes(x = value)) + geom_bar() + facet_wrap(~variable, scales = "free")
+```
+By looking at the small multiples of distributions, we see a few variables having issues with missing data (seed.tmt). Many variables are highly skewed (leaf.mild, int.discolor, roots) etc.
+
+
+(b) Roughly 18 % of the data are missing. Are there particular predictors that are more likely to be missing? Is the pattern of missing data related to the classes?
+
+```{r}
+
+```
+
+(c) Develop a strategy for handling missing data, either by eliminating predictors or imputation.
+Missing values can be filled using imputation. A K-nearest neighbor model imputes a new sample by finding the samples in the training set “closest” to it and averages these nearby points to fill in the value.
+
+
+HA
+7.1 Consider the pigs series — the number of pigs slaughtered in Victoria each month.
+
+a. Use the ses() function in R to find the optimal values of α and ℓ0, and generate forecasts for the next four months.
+```{r}
+pigsdata <- window(pigs, start = 1980)
+autoplot(pigsdata)
+fc <- ses(pigs, h = 5, level = 95)
+summary(fc)
+```
+The smoothing parameter: alpha = 0.2971 and the initial states: l = 77260.0561. The point forecast value is 98816.41.
+
+```{r}
+autoplot(fc) +
+  autolayer(fitted(fc), series="Fitted") +
+  ylab("Number of pigs") + xlab("Year")
+```
+
+b. Compute a 95% prediction interval for the first forecast using y ± 1.96s where s is the standard deviation of the residuals. Compare your interval with the interval produced by R.
+
+```{r}
+pre_int <- 1.96 * sd(fc$residuals)
+lower <- 98816.41 - pre_int
+upper <- 98816.41 + pre_int
+
+lower
+upper
+```
+
+The interval produced by R is between 78611.97 and 119020.8.
+
+7.2 Write your own function to implement simple exponential smoothing. The function should take arguments y (the time series), alpha (the smoothing parameter α), and level (the initial level ℓ0). It should return the forecast of the next observation in the series. Does it give the same forecast as ses?
+
+
+
+7.3 Modify your function from the previous exercise to return the sum of squared errors rather than the forecast of the next observation. Then use the optim() function to find the optimal values of α and ℓ0. Do you get the same values as the ses() function?
+
+
+8.1 Figure 8.31 shows the ACFs for 36 random numbers, 360 random numbers and 1,000 random numbers.
+
+a. Explain the differences among these figures. Do they all indicate that the data are white noise?
+
+The ACFs differ in the number of series, but all indicate white noise. 
+
+b. Why are the critical values at different distances from the mean of zero? Why are the autocorrelations different in each figure when they each refer to white noise?
+
+The critical values are at difference distances because of the different lengths of the series. 
+
+8.2 A classic example of a non-stationary series is the daily closing IBM stock price series (data set ibmclose). Use R to plot the daily closing prices for IBM stock and the ACF and PACF. Explain how each plot shows that the series is non-stationary and should be differenced.
+```{r}
+autoplot(ibmclose)
+
+autoplot(acf(ibmclose))
+
+autoplot(pacf(ibmclose))
+```
+
+8.6 Use R to simulate and plot some data from simple ARIMA models.
+a. Use the following R code to generate data from an AR(1) model with ϕ1= 0.6 and σ2=1. 
+The process starts with y1=0.
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.6*y[i-1] + e[i]
+
+```
+
+
+b. Produce a time plot for the series. How does the plot change as you change ϕ1?
+
+```{r}
+autoplot(y)
+```
+
