@@ -1,0 +1,262 @@
+---
+title: "Project1"
+output: html_document
+---
+
+S04 Var01, Var02
+S05 Var 02
+
+```{r}
+all_set <- read.csv("https://raw.githubusercontent.com/lincarrieli/Data624/main/Project1_Group2.csv", header = TRUE)
+
+s04 <- subset(all_set, group == "S04")
+s05 <- subset(all_set, group == "S05")
+```
+
+```{r}
+s04Var01 <- s04$Var01
+s04Var02 <- s04$Var02
+s05Var02 <- s05$Var02
+```
+
+Initial visualization for S04 Var02, Var03 and S04 Var 02
+```{r}
+s04 %>%
+  ggplot(aes(x=SeriesInd, y=Var01)) + geom_line() + ggtitle("s04Var01")
+
+s04 %>%
+  ggplot(aes(x=SeriesInd, y=Var02)) + geom_line() + ggtitle("s04Var02")
+
+s05 %>%
+  ggplot(aes(x=SeriesInd, y=Var02)) + geom_line() + ggtitle("s05Var02")
+```
+
+
+```{r}
+library(tseries)
+library(tidyverse)
+library(fpp2)
+library(readxl)
+s04Var01.ts <- ts(s04Var01, frequency = 365)
+s04Var01.ts1 <- na.remove(s04Var01.ts)
+
+s04Var01.ts1 %>%
+  decompose(type="multiplicative")%>%
+  autoplot() + xlab("Time") +
+  ggtitle("Classical multiplicative decomposition of s04Var01")
+```
+```{r}
+s04Var02.ts <- ts(s04Var02, frequency = 365)
+s04Var02.ts %>%
+  decompose(type="multiplicative") %>%
+  autoplot() + xlab("Time") +
+  ggtitle("Classical multiplicative decomposition of s04Var02")
+```
+
+
+```{r}
+s05Var02.ts <- ts(s05Var02, frequency = 365)
+
+s05Var02.ts1 <- na.remove(s05Var02.ts)
+s05Var02.ts1 %>%
+  decompose(type="multiplicative") %>%
+  autoplot() + xlab("Time") +
+  ggtitle("Classical multiplicative decomposition of s04Var02")
+```
+
+Each variable seems to display distinct characteristics. s04Var02 has no apparent trend but do exhibit seasonality based on the decomposition plot; it also has a few outliers. s04Var03 has a upward trend and starting to go downward with clear seasonality. s05Var02 shows a downward trend at the beginning of the series and seemed to remine flat before starting to go upward; three extreme outliers can be observed from the plot.
+
+Examine the nature of gaps/missing values. Using the approach of computing the =average squared difference across gaps
+
+```{r}
+SeriesInd.ts <- ts(s04$SeriesInd)
+
+gaps <- diff(SeriesInd.ts) > 1
+
+gaps <- c(FALSE, gaps)
+gaps.df <- data.frame("SeriesInd" = s04$SeriesInd, "AfterGap" = gaps)
+
+gaps.df <- gaps.df %>%
+  mutate("s04Var01" = s04$Var01, "s04Var01.diff" = s04$Var01 - lag(s04$Var01))
+
+
+sqdiff_across_gaps_s04Var01 <- gaps.df %>%
+  filter(AfterGap) %>%
+  filter(s04Var01.diff > -50) %>%
+  select(s04Var01.diff)
+
+sqdiff_across_gaps_s04Var01 <- sqdiff_across_gaps_s04Var01^2
+sqdiff_across_gaps_s04Var01 <-
+  mean(sqdiff_across_gaps_s04Var01$s04Var01.diff)
+sqdiff_across_gaps_s04Var01
+```
+
+Computing the average squared difference between successive entries for s04Var01:
+
+```{r}
+sqdiff_across_all <- gaps.df %>%
+  filter(s04Var01.diff < 50) %>%
+  select(s04Var01.diff)
+
+sqdiff_across_all <- sqdiff_across_all^2
+sqdiff_across_all <- mean(sqdiff_across_all$s04Var01.diff)
+sqdiff_across_all
+```
+
+The small difference in values of mean squared difference between gaps and successive values are small enough to suggest a pause in data generating process, and not missing data.
+
+
+```{r}
+s04Var01.ts <-ts(s04Var01)
+
+autoplot(s04Var01.ts) +
+  xlab("Day") +
+  ylab("Value") +
+  ggtitle("Daily Value of s04Var01")
+
+s04Var02.ts <- s04 %>%
+  filter(Var02 < 15000000) %>%
+  select(Var02) %>%
+  ts()
+
+autoplot(s04Var02.ts) +
+  xlab("Day") +
+  ylab("Value") +
+  ggtitle("Daily Value of s04Var02")
+
+s05Var02.ts <- s05 %>%
+  filter(Var02 < 15000000) %>%
+  select(Var02) %>%
+  ts()
+
+autoplot(s05Var02.ts) +
+  xlab("Day") +
+  ylab("Value") +
+  ggtitle("Daily Value of s05Var02")
+```
+
+```{r}
+library(forecast)
+library(ggplot2)
+s04Var01_rwf <- rwf(s04Var01.ts, h = 140)
+s04Var02_rwf <- rwf(s04Var02.ts, h = 140)
+s05Var02_rwf <- rwf(s05Var02.ts, h = 140)
+
+s04Var01_drwf <- rwf(s04Var01.ts, h = 140, drift = TRUE)
+s04Var02_drwf <- rwf(s04Var02.ts, h = 140, drift = TRUE)
+s05Var02_drwf <- rwf(s04Var02.ts, h = 140, drift = TRUE)
+
+#s04Var01_mean <- mean(s04Var01.ts, h = 140)
+#s04Var02_mean <- mean(s04Var02.ts, h = 140)
+#s05Var02_mean <- mean(s05Var02.ts, h = 140)
+
+autoplot(s04Var01.ts) +
+  autolayer(s04Var01_rwf, series = "Naive", PI = FALSE) +
+  autolayer(s04Var01_drwf, series = "Drift", PI = FALSE) 
+ 
+autoplot(s04Var02.ts) +
+  autolayer(s04Var02_rwf, series = "Naive", PI = FALSE) +
+  autolayer(s04Var02_drwf, series = "Drift", PI = FALSE)
+
+autoplot(s05Var02.ts) +
+  autolayer(s05Var02_rwf, series = "Naive", PI = FALSE) +
+  autolayer(s05Var02_drwf, series = "Drift", PI = FALSE) 
+  
+  
+```
+```{r}
+s04Var01_rmse_rwf_nodrift <- tsCV(s04Var01.ts, rwf, drift = FALSE, h = 1)
+s04Var01_rmse_rwf_nodrift <- sqrt(mean(s04Var01_rmse_rwf_nodrift^2, na.rm = TRUE))
+
+s04Var01_rmse_rwf_drift <- tsCV(s04Var01.ts, rwf, drift = TRUE, h = 1)
+s04Var01_rmse_rwf_drift <- sqrt(mean(s04Var01_rmse_rwf_drift^2, na.rm = TRUE))
+
+s04Var02_rmse_rwf_nodrift <- tsCV(s04Var02.ts, rwf, drift = FALSE, h = 1)
+s04Var02_rmse_rwf_nodrift <- sqrt(mean(s04Var02_rmse_rwf_nodrift^2, na.rm = TRUE))
+
+s04Var02_rmse_rwf_drift <- tsCV(s04Var02.ts, rwf, drift = TRUE, h = 1)
+s04Var02_rmse_rwf_drift <- sqrt(mean(s04Var02_rmse_rwf_drift^2, na.rm = TRUE))
+
+s05Var02_rmse_rwf_nodrift <- tsCV(s05Var02.ts, rwf, drift = FALSE, h = 1)
+s05Var02_rmse_rwf_nodrift <- sqrt(mean(s05Var02_rmse_rwf_nodrift^2, na.rm = TRUE))
+
+s05Var02_rmse_rwf_drift <- tsCV(s05Var02.ts, rwf, drift = TRUE, h = 1)
+s05Var02_rmse_rwf_drift <- sqrt(mean(s05Var02_rmse_rwf_drift^2, na.rm = TRUE))
+```
+
+```{r}
+s04Var01_rmse_rwf_nodrift
+s04Var01_rmse_rwf_drift
+
+s04Var02_rmse_rwf_nodrift
+s04Var02_rmse_rwf_drift 
+
+s05Var02_rmse_rwf_nodrift
+s05Var02_rmse_rwf_drift
+```
+For all models, the better performing model is random walk with no drift.
+
+Exponential soomthing is suitable for data with clear trend or seasonality, and Holt’s linear trend method allows the forecasting of data with a trend. I  apply apply both methods to all three variables and would expect Exponential smoothing would better fit s04Var02, and Holt's would fit better with s04Var01 and s05Var02.
+
+```{r}
+s04Var02_ses <- ses(s04Var02.ts, h = 140)
+summary(s04Var02_ses)
+```
+
+```{r}
+s05Var02_ses <- ses(s05Var02.ts, h = 140)
+summary(s05Var02_ses)
+```
+The optimized simple exponential smoothing method computed $\alpha = 0.9999$, making this method almost indistinguishable from the random-walk forecast.
+
+```{r}
+s04Var02_ses <- ses(s04Var02.ts, h = 140)
+summary(s04Var02_ses)
+```
+
+```{r}
+s05Var02_ses <- ses(s05Var02.ts, h = 140)
+summary(s05Var02_ses)
+```
+For s04Var02 and s05Var02, the $\alpha = 0.4$, indicating that some weight is given to observations from the more distant past.
+```{r}
+s04Var02_1.ts <- s04Var02.ts %>%
+  na.remove()
+s04Var02_ses <- ses(s04Var02_1.ts, h = 140)
+
+autoplot(s04Var02_ses) +
+  autolayer(fitted(s04Var02_ses), series="Fitted") +
+  ylab("Value") + xlab("Day")
+```
+```{r}
+s05Var02_1.ts <- s05Var02.ts %>%
+  na.remove()
+s05Var02_ses <- ses(s05Var02_1.ts, h = 140)
+
+autoplot(s05Var02_ses) +
+  autolayer(fitted(s05Var02_ses), series="Fitted") +
+  ylab("Value") + xlab("Day")
+```
+```{r}
+s04VAr01_hw <- holt(s04Var01.ts1,
+         damped = TRUE, h=140)
+
+autoplot(s04VAr01_hw) +
+  autolayer(s04VAr01_hw, series="Hold", PI=FALSE)+
+  guides(colour=guide_legend(title="Daily forecasts of s04Var01"))
+
+s04VAr02_hw <- holt(s04Var02.ts,
+         damped = TRUE, h=140)
+
+autoplot(s04VAr02_hw) +
+  autolayer(s04VAr02_hw, series="Hold", PI=FALSE)+
+  guides(colour=guide_legend(title="Daily forecasts of s04Var02"))
+
+s05VAr02_hw <- holt(s05Var02.ts,
+         damped = TRUE, h=140)
+
+autoplot(s05VAr02_hw) +
+  autolayer(s05VAr02_hw, series="Hold", PI=FALSE)+
+  guides(colour=guide_legend(title="Daily forecasts of s05Var02"))
+```
+
