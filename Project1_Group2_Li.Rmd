@@ -259,4 +259,8 @@ autoplot(s05VAr02_hw) +
   autolayer(s05VAr02_hw, series="Hold", PI=FALSE)+
   guides(colour=guide_legend(title="Daily forecasts of s05Var02"))
 ```
+Conclusion
+
+For all models, the better performing model is random walk with no drift. Although we assume the data represent stock prices, the s04Var01 tend to be more consistent with stock data than the other two variables. Both exponential smoothing and ARIMA are popular methods in forecasting the stock market, each method requires assumptions and in-depth understanding of the data. There have been attempts to use time series analyses to predict the future of the stock market, they still cannot and should not be used to bet the real market.
+
 
