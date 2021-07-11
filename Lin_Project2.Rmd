@@ -1,0 +1,139 @@
+---
+title: "Group2_Project2_Lin"
+output: html_document
+---
+
+### 
+
+```{r}
+# Import libraries
+library(mice)
+library(VIM)
+library(lattice)
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(tidyverse)
+```
+
+```{r}
+# Load data
+to_model <- read.csv("https://raw.githubusercontent.com/lincarrieli/Data624/main/StudentData%20-%20TO%20MODEL.csv")
+to_predict <- read.csv("https://raw.githubusercontent.com/lincarrieli/Data624/main/StudentEvaluation-%20TO%20PREDICT.csv")
+```
+
+
+```{r}
+summary(to_model)
+```
+
+
+### Data Processing
+```{r}
+# Compute missing values in each column
+colSums(is.na(to_model))
+
+# Check number of unique values in Brand.Code column
+table(to_model$Brand.Code)
+
+# Assign empty Brand Codes as "A"
+to_model$Brand.Code[to_model$Brand.Code == ""] <- "A"
+```
+
+
+```{r}
+# Drop rows with pH missing
+#to_model2 <- to_model %>% filter(!is.na(PH))
+
+# Remove response column pH
+colnames(to_model)
+```
+
+### Data Imputation
+
+The VIM package provides a better understanding of the pattern of missing data using visual presentation.
+```{r}
+
+aggr_plot <- aggr(to_model, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(to_model), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+```
+```{r}
+# Remove response column pH
+df1 <- to_model[ , -which(names(to_model) %in% 'PH')]
+```
+
+
+```{r}
+NA2mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
+df_complete <- replace(df1, TRUE, lapply(df1, NA2mean))
+```
+
+
+### Visualize distribution of predictive variables
+```{r}
+library(reshape2)
+library(ggplot2)
+d <- melt(df_complete)
+ggplot(d,aes(x = value)) + 
+    facet_wrap(~variable,scales = "free_x") + 
+    geom_histogram()
+```
+
+### Transformation
+It's important to normalize the data before training for Neural Network analysis.
+A standard approach is to scale the inputs to have mean 0 and a variance. Also linear decorrelation/whitening/pca helps a lot.
+
+```{r}
+# Adding PH back to dataframe
+df_complete1 <- cbind(df_complete, to_model["PH"])
+
+# Apply min-max normalization to values
+# normalize <- function(x) {
+#   return ((x - min(x)) / (max(x) - min(x)))
+# }
+# data <- df_complete[complete.cases(df_complete),]
+# data <- data %>% select_if(is.numeric)
+# dfNorm <- as.data.frame(lapply(data, normalize))
+```
+
+```{r}
+colnames(df_complete1)
+```
+
+
+```{r}
+# Split into train and test
+n <- nrow(df_complete)
+smp_size <- floor(0.7 * n)  
+set.seed(123) 
+index<- sample(seq_len(n),size = smp_size)
+train <- df_complete[index,]
+test <- df_complete[-index,]
+```
+
+
+```{r}
+# Scale data for model
+max <- apply(df_complete, 2, max)
+min <- apply(df_complete, 2, min)
+scaled <- as.data.frame(scale(df_complete, center = min, scale = max - min))
+```
+
+
+### Building a Neural Network model
+There is no fixed rule as to how many layers and neurons to use. As far as the number of neurons is concerned, it should be between the input layer size and the output layer size, usually 2/3 of the input size.
+
+```{r}
+#pred1$Brand.Code <- revalue(pred1$Brand.Code, c("A"=1, "B"=2, "C"=3, "D"=4))
+```
+
+
+```{r}
+# train_mat<- as.matrix(train)
+# test_mat<- as.matrix(test)
+```
+
+
+
+
+
+
